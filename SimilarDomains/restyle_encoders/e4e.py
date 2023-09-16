@@ -29,10 +29,9 @@ def get_keys(d, name):
 
 
 class e4e(nn.Module):
-    def __init__(self, opts, device):
+    def __init__(self, opts):
         super(e4e, self).__init__()
         self.opts = opts
-        self.device = device
         # Define architecture
         self.encoder = self.set_encoder()
         self.decoder = Generator(opts.stylegan_size, 512, 8, channel_multiplier=2)

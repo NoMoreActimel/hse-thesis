@@ -1,0 +1,6 @@
+.ipynb_checkpoints/
+**/.idea/*
+__pycache__/
+wandb/
+pretrained/
+.DS_Store

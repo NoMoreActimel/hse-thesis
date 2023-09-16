@@ -4,7 +4,7 @@ exp:
   project: test_project
   tags:
     - test
-  name: default_trainer_sdelta
+  name: test_run_difa
   seed: 0
   root: .
   notes: empty notes

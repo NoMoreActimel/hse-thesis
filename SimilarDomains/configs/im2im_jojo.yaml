@@ -4,7 +4,7 @@ exp:
   project: test_project
   tags:
     - test
-  name: jojo_time
+  name: test_run_jojo
   seed: 0
   root: .
   notes: empty notes
@@ -17,7 +17,7 @@ training:
   device: cuda:0
   generator: stylegan2
   phase: all
-  patch_key: cin_mult
+  patch_key: full
   source_class: Real Person
   target_class: ./image_domains/jojo.png
   auto_layer_k: 16

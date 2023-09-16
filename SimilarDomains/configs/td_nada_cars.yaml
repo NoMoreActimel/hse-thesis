@@ -1,26 +1,25 @@
 exp:
   config_dir: configs
-  config: td_single_ffhq.yaml
+  config: td_single_car.yaml
   project: test_project
   tags:
     - None
-  name: test_run
-  seed: 12
+  name: test_run_cars
+  seed: 0
   root: .
   notes: empty notes
   logging: true
-  step_save: 25
+  step_save: 100
   trainer: td_single
 training:
-  iter_num: 250
+  iter_num: 400
   batch_size: 8
   device: cuda:0
   generator: stylegan2
   phase: all
-  patch_key: cin_mult
-  source_class: Human
-  target_class: The Joker
-  no_coarse: True
+  patch_key: full
+  source_class: Car
+  target_class: Golden Car
   auto_layer_k: 16
   auto_layer_iters: 0
   auto_layer_batch: 8
@@ -34,28 +33,30 @@ optimization_setup:
     - indomain
   loss_coefs:
     - 1.0
-    - 0.25
+    - 1.5
   g_reg_every: 4
   optimizer:
     weight_decay: 0.0
-    lr: 0.01
+    lr: 0.002
     betas:
-    - 0.9
+    - 0.0
     - 0.999
 generator_args:
-  checkpoint_path: pretrained/StyleGAN2/stylegan2-ffhq-config-f.pt
+  checkpoint_path: pretrained/StyleGAN2/stylegan2-car-config-f.pt
+  img_size: 512
 evaluation:
   is_on: false
   vision_models:
+    - ViT-B/32
     - ViT-L/14
-  step: 20
+  step: 100000
   data_size: 500
-  batch_size: 12
+  batch_size: 24
 logging:
   log_every: 10
   log_images: 20
   latents_to_edit: []
-  truncation: 0.7
+  truncation: 0.5
   num_grid_outputs: 1
 checkpointing:
   is_on: false
