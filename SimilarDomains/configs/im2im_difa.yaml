@@ -17,7 +17,7 @@ training:
   device: cuda:0
   generator: stylegan2
   phase: all
-  patch_key: full
+  patch_key: original
   source_class: Real Person
   target_class: ./image_domains/disney.png
   auto_layer_k: 16

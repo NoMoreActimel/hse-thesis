@@ -125,26 +125,6 @@ w_style_pair = [
 ]
 
 
-offsetconv_to_style = [
-    (0, 0),
-    (1, 2),
-    (2, 3),
-    (3, 5),
-    (4, 6),
-    (5, 8),
-    (6, 9),
-    (7, 11),
-    (8, 12),
-    (9, 14),
-    (10, 15),
-    (11, 17),
-    (12, 18),
-    (13, 20),
-    (14, 21),
-    (15, 23),
-    (16, 24)
-]
-
 p_root = Path(__file__).resolve().parent.parent / 'pretrained'
 
 weights = {p.name.rsplit('_', 1)[0]: p for p in (p_root / 'checkpoints_iccv').iterdir()}
