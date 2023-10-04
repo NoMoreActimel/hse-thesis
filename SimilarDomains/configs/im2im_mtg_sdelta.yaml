@@ -19,7 +19,7 @@ training:
   phase: all
   patch_key: s_delta
   source_class: Real Person
-  target_class: ./image_domains/art.png
+  target_class: ./image_domains/maryna_tymoshenko_.jpg.png
   auto_layer_k: 16
   auto_layer_iters: 0
   auto_layer_batch: 8

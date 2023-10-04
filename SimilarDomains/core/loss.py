@@ -257,7 +257,7 @@ def l2_rec(
 
 @lru_cache(maxsize=1)
 def get_discriminator():
-    ckpt = torch.load('jojo_models/stylegan2-ffhq-config-f.pt')
+    ckpt = torch.load('pretrained/stylegan2-ffhq-config-f.pt')
     disc = DiscriminatorJojo(1024, 2).eval().to('cuda:0')
     disc.load_state_dict(ckpt["d"], strict=False)
     return disc
