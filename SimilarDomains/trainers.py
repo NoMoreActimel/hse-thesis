@@ -39,6 +39,7 @@ from core.uda_models import uda_models
 from core.dataset import ImagesDataset
 from tqdm import trange
 
+
 trainer_registry = ClassRegistry()
 
 
@@ -92,7 +93,11 @@ class BaseDomainAdaptationTrainer:
         self._setup_batch_generators()
         self._setup_source_generator()
         self._setup_loss()
-        self._initial_logging()
+        
+        if "low_memory" in self.config.logging and self.config.logging.low_memory:
+            self._initial_logging_for_low_memory()
+        else:
+            self._initial_logging()
 
     def _setup_device(self):
         chosen_device = self.config.training["device"].lower()
@@ -134,6 +139,18 @@ class BaseDomainAdaptationTrainer:
         for idx, z in enumerate(self.zs_for_logging):
             images = self.forward_source(z, truncation=self.config.logging.truncation)
             self.logger.log_images(0, {f"src_domain_grids/{idx}": construct_paper_image_grid(images)})
+            
+    @torch.no_grad()
+    def _initial_logging_for_low_memory(self):
+        self.zs_for_logging = [
+            mixing_noise(2, 512, 0, self.config.training.device)
+            for _ in range(self.config.logging.num_grid_outputs)
+        ]
+
+        for idx, z in enumerate(self.zs_for_logging):
+            images = self.forward_source(z, truncation=self.config.logging.truncation)
+            images = torch.cat([images[0], images[1]], dim=2)
+            self.logger.log_images(0, {f"src_domain_grids/{idx}": t2im(images)})
     
     def _setup_optimizer(self):
         if self.config.training.patch_key == "original":
@@ -236,7 +253,10 @@ class BaseDomainAdaptationTrainer:
 
             if self.current_step % self.config.logging.log_images == 0:
                 with Timer(iter_info, "log_images"):
-                    self.log_images()
+                    if "low_memory" in self.config.logging and self.config.logging.low_memory:
+                        self.log_images_for_low_memory()
+                    else:
+                        self.log_images()
             
             if self.current_step % self.config.logging.log_every == 0:
                 self.logger.log_values(
@@ -733,6 +753,43 @@ class Image2ImageSingleDomainAdaptationTrainer(SingleDomainAdaptationTrainer):
         dict_to_log.update({"style_image/projected_B": rec_img})
         self.logger.log_images(self.current_step, dict_to_log)
         
+    @torch.no_grad()
+    def log_images_for_low_memory(self):
+        self.trainable.eval()
+        dict_to_log = {}
+
+        for idx, z in enumerate(self.zs_for_logging):
+            w_styles = self.source_generator.style(z)
+            sampled_imgs, _ = self.forward_trainable(z, truncation=self.config.logging.truncation)
+            n_lat = self.source_generator.generator.n_latent
+            tmp_latents = w_styles[0].unsqueeze(1).repeat(1, n_lat, 1)
+            gen_mean = self.source_generator.mean_latent.unsqueeze(1).repeat(1, n_lat, 1)
+            style_mixing_latents = self.config.logging.truncation * (tmp_latents - gen_mean) + gen_mean
+            style_mixing_latents[:, 7:, :] = self.style_image_latents[:, 7:, :]
+
+            style_mixing_imgs, _ = self.forward_trainable(
+                [style_mixing_latents], input_is_latent=True, truncation=1
+            )
+
+            sampled_imgs = torch.cat([sampled_imgs[0], sampled_imgs[1]], dim=2)
+            sampled_imgs = t2im(sampled_imgs)
+            style_mixing_imgs = torch.cat([style_mixing_imgs[0], style_mixing_imgs[1]], dim=2)
+            style_mixing_imgs = t2im(style_mixing_imgs)
+
+            dict_to_log.update({
+                f"trg_domain_grids/{Path(self.config.training.target_class).stem}/{idx}": sampled_imgs,
+                f"trg_domain_grids_sm/{Path(self.config.training.target_class).stem}/{idx}": style_mixing_imgs,
+
+            })
+
+        rec_img, _ = self.forward_trainable(
+            [self.style_image_latents],
+            input_is_latent=True,
+        )
+        rec_img = t2im(rec_img.squeeze())
+        dict_to_log.update({"style_image/projected_B": rec_img})
+        self.logger.log_images(self.current_step, dict_to_log)
+        
         
 @trainer_registry.add_to_registry("im2im_JoJo")
 class JoJoSingleDomainAdaptationTrainer(Image2ImageSingleDomainAdaptationTrainer):
@@ -838,6 +895,31 @@ class JoJoSingleDomainAdaptationTrainer(Image2ImageSingleDomainAdaptationTrainer
             w_styles = self.source_generator.style(z)
             sampled_imgs, _ = self.forward_trainable(z, truncation=self.config.logging.truncation)
             sampled_imgs = construct_paper_image_grid(sampled_imgs)
+
+            dict_to_log.update({
+                f"trg_domain_grids/{Path(self.config.training.target_class).stem}/{idx}": sampled_imgs,
+
+            })
+
+        rec_img, _ = self.forward_trainable(
+            self.style_image_latents,
+            input_is_latent=not self.config.training.mix_stylespace, 
+            is_s_code=self.config.training.mix_stylespace
+        )
+        rec_img = t2im(rec_img.squeeze())
+        dict_to_log.update({"style_image/projected_B": rec_img})
+        self.logger.log_images(self.current_step, dict_to_log)
+        
+    @torch.no_grad()
+    def log_images_for_low_memory(self):
+        self.trainable.eval()
+        dict_to_log = {}
+
+        for idx, z in enumerate(self.zs_for_logging):
+            w_styles = self.source_generator.style(z)
+            sampled_imgs, _ = self.forward_trainable(z, truncation=self.config.logging.truncation)
+            sampled_imgs = torch.cat([sampled_imgs[0], sampled_imgs[1]], dim=2)
+            sampled_imgs = t2im(sampled_imgs)
 
             dict_to_log.update({
                 f"trg_domain_grids/{Path(self.config.training.target_class).stem}/{idx}": sampled_imgs,
@@ -1098,6 +1180,30 @@ class DiFATrainer(Image2ImageSingleDomainAdaptationTrainer):
             w_styles = self.source_generator.style(z)
             sampled_imgs, _ = self.forward_trainable(z, truncation=self.config.logging.truncation)
             sampled_imgs = construct_paper_image_grid(sampled_imgs)
+
+            dict_to_log.update({
+                f"trg_domain_grids/{Path(self.config.training.target_class).stem}/{idx}": sampled_imgs,
+
+            })
+
+        rec_img, _ = self.forward_trainable(
+            [self.style_image_latents],
+            input_is_latent=True, 
+        )
+        rec_img = t2im(rec_img.squeeze())
+        dict_to_log.update({"style_image/projected_B": rec_img})
+        self.logger.log_images(self.current_step, dict_to_log)
+        
+    @torch.no_grad()
+    def log_images_for_low_memory(self):
+        self.trainable.eval()
+        dict_to_log = {}
+
+        for idx, z in enumerate(self.zs_for_logging):
+            w_styles = self.source_generator.style(z)
+            sampled_imgs, _ = self.forward_trainable(z, truncation=self.config.logging.truncation)
+            sampled_imgs = torch.cat([sampled_imgs[0], sampled_imgs[1]], dim=2)
+            sampled_imgs = t2im(sampled_imgs)
 
             dict_to_log.update({
                 f"trg_domain_grids/{Path(self.config.training.target_class).stem}/{idx}": sampled_imgs,
