@@ -94,6 +94,12 @@ SOURCES = {
         'id': '1o6ijA3PkcewZvwJJ73dJ0fxhndn0nnh7',
         'name': 'e4e_ffhq_encode.pt'
     },
+    'clip_means': {
+        'link': 'https://nxt.2a2i.org/index.php/s/CbxaqSy6C7sFNW2/download/clip_means.zip',
+        'name': 'clip_means.zip',
+        'uncompressed_dir': '',
+        'root_located': True,
+    },
     'ckpt': {
         'link': 'https://nxt.2a2i.org/index.php/s/eDWLK8rDzSFoxeZ/download/checkpoints.tar.gz',
         'name': 'checkpoints.tar.gz',
