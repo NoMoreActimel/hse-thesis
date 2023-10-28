@@ -79,8 +79,9 @@ class Setup:
 
 SOURCES = {
     'sg2-ffhq': {
-        'id': '1Yr7KuD959btpmcKGAUsbAk5rPjX2MytK',
-        'name': 'stylegan2-ffhq-config-f.pt'
+        'link': 'https://nxt.2a2i.org/index.php/s/kyR9byFznz5GBTd/download/stylegan2-ffhq-config-f.pt.zip',
+        'name': 'stylegan2-ffhq-config-f.pt.zip',
+        'uncompressed_dir': ''
     },
     'dlib': {
         'link': 'http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2',
@@ -91,8 +92,9 @@ SOURCES = {
         'name': 'restyle_psp_ffhq_encode.pt'
     },
     'e4e': {
-        'id': '1o6ijA3PkcewZvwJJ73dJ0fxhndn0nnh7',
-        'name': 'e4e_ffhq_encode.pt'
+        'link': 'https://nxt.2a2i.org/index.php/s/ey49AsRwgyK77C9/download/e4e_ffhq_encode.pt.zip',
+        'name': 'e4e_ffhq_encode.pt.zip',
+        'uncompressed_dir': ''
     },
     'clip_means': {
         'link': 'https://nxt.2a2i.org/index.php/s/CbxaqSy6C7sFNW2/download/clip_means.zip',
