@@ -4,7 +4,14 @@ This code is mainly based on the [stylegan2-ada-pytorch](https://github.com/NVla
 ## Getting started
 This code has the same prerequisites and requirements as [stylegan2-ada-pytorch](https://github.com/NVlabs/stylegan2-ada-pytorch) repository.
 
+Basic example of models loading and inference can be found in the notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/124GIlJ1KvKQ6Z1myZbKgk8u4YDy4An2e?usp=sharing)
+
+List of pretrained models and checkpoint's download URLs can be found in the same notebook.
+
+More complex usages of the models can be found under the section **Reproduction of paper results** down below.
+
 ## Preparing datasets
+
 Generally, preprocessing should be performed exactly like in [stylegan2-ada-pytorch](https://github.com/NVlabs/stylegan2-ada-pytorch).
 
 We use three different resolutions for different experiments:
