@@ -1,0 +1,5 @@
+DeprecationWarning: 'source deactivate' is deprecated. Use 'conda deactivate'.
+Traceback (most recent call last):
+  File "/home/sasedov/FeatureStyleEncoder/test.py", line 13, in <module>
+    from torchvision import transforms, utils
+ModuleNotFoundError: No module named 'torchvision'

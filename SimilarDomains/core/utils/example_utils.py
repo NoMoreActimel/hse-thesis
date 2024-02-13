@@ -5,7 +5,7 @@ import clip
 import torch.nn as nn
 import torch.nn.functional as F
 import PIL
-
+import yaml
 
 from argparse import Namespace
 from torchvision import transforms
@@ -19,6 +19,9 @@ from core.parametrizations import BaseParametrization
 from core.mappers import mapper_registry
 from restyle_encoders.psp import pSp
 from restyle_encoders.e4e import e4e
+
+from ..FeatureStyleEncoder.nets.feature_style_encoder import fs_encoder_v2
+from ..FeatureStyleEncoder.utils.functions import downscale
 
 
 def read_img(img_path, align_input=False):
@@ -251,6 +254,87 @@ def project_restyle_psp(img, model_path, name=None, device='cuda:0'):
         result_file['latent'] = result_latents[0]
         torch.save(result_file, name)
     return results_im[0], result_latents[0]
+
+
+
+def read_fse_config(config_name):
+    config = yaml.load(open('./FeatureStyleEncoder/configs/' + config_name + '.yaml', 'r'), Loader=yaml.FullLoader)
+
+    scale = int(np.log2(config['resolution']/config['enc_resolution']))
+    scale_mode = config.get('scale_mode', 'bilinear')
+    idx_k = config.get('idx_k', 5)
+    n_styles = 2 * int(np.log2(config['resolution'])) - 2
+    if 'stylegan_version' in config and config['stylegan_version'] == 3:
+        n_styles = 16
+
+    # Networks
+    enc_residual = config.get('enc_residual', False)
+    enc_residual_coeff = config.get('enc_residual_coeff', False)
+
+    resnet_layers = [4,5,6]
+    if 'enc_start_layer' in config:
+        st_l = config['enc_start_layer']
+        resnet_layers = [st_l, st_l+1, st_l+2]
+    
+    # Load encoder
+    stride = (config['fs_stride'], config['fs_stride'])
+
+    return scale, scale_mode, idx_k, n_styles, enc_residual, enc_residual_coeff, resnet_layers, stride 
+
+
+
+@torch.no_grad()
+def project_fse_without_image_generation(img,
+                model_path='./FeatureStyleEncoder/pretrained_models/143_enc.pth',
+                fse_config_name='001',
+                arcface_model_path='./FeatureStyleEncoder/pretrained_models/backbone.pth',
+                stylegan_model_path='./'
+                latent_avg=None,
+                name=None,
+                device='cuda:0'):    
+    
+    scale, scale_mode, idx_k, n_styles, enc_residual, enc_residual_coeff, resnet_layers, stride = read_fse_config(fse_config_name)
+
+    opts = dict()
+    opts['arcface_model_path'] = arcface_model_path
+    opts= Namespace(**opts)
+
+    net = fs_encoder_v2(
+        n_styles=n_styles,
+        opts=opts,
+        residual=enc_residual,
+        use_coeff=enc_residual_coeff,
+        resnet_layer=resnet_layers,
+        stride=stride
+    )
+    net.load_state_dict(torch.load(model_path))
+    net = net.eval().to(device)
+
+    if latent_avg is None:
+        stylegan_state_dict = torch.load(stylegan_model_path, map_location='cpu') ?
+        latent_avg = stylegan_state_dict['latent_avg'].to(device)
+
+    transform = transforms.Compose(
+        [
+            transforms.Resize(256),
+            transforms.CenterCrop(256),
+            transforms.ToTensor(),
+            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+        ]
+    )
+
+    img = transform(img).unsqueeze(0).to(device)
+
+    w_recon, fea = net(downscale(img, scale, scale_mode)) 
+    w_recon = w_recon + latent_avg
+    features = [None] * idx_k + [fea] + [None] * (n_styles - 1 - idx_k)
+
+    if name is not None:
+        result_file = {}
+        result_file['latent'] = w_recon[0]
+        torch.save(result_file, name)
+    
+    return None, w_recon, features
 
 
 def run_alignment(image_path, predictor_path="pretrained/shape_predictor_68_face_landmarks.dat"):

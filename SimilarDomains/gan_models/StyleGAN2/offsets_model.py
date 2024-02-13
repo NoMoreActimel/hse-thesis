@@ -294,6 +294,8 @@ class OffsetsGenerator(nn.Module):
         channel_multiplier=2,
         blur_kernel=[1, 3, 3, 1],
         lr_mlp=0.01,
+        use_feature_insertion=False,
+        feature_insertion_k=None
     ):
         super().__init__()
 
@@ -381,6 +383,10 @@ class OffsetsGenerator(nn.Module):
         self.modulation_layers = [self.conv1.conv.modulation, self.to_rgb1.conv.modulation] + \
                                  [layer.conv.modulation for layer in self.convs]            + \
                                  [layer.conv.modulation for layer in self.to_rgbs]
+
+        self.use_feature_insertion = use_feature_insertion
+        self.feature_insertion_k = feature_insertion_k
+
         
     def make_noise(self):
         device = self.input.input.device
@@ -458,6 +464,7 @@ class OffsetsGenerator(nn.Module):
         styles,
         offsets=None,
         return_latents=False,
+        return_features=False,
         inject_index=None,
         truncation=1,
         truncation_latent=None,
@@ -465,20 +472,25 @@ class OffsetsGenerator(nn.Module):
         is_s_code=False,
         noise=None,
         randomize_noise=False,
-        offset_power=1.
+        offset_power=1.,
+        features_in=None,
+        feature_scale=1.0
     ):
         if not is_s_code:
             return self.forward_with_w(
                 styles, 
                 offsets,
                 return_latents, 
+                return_features,
                 inject_index, 
                 truncation, 
                 truncation_latent, 
                 input_is_latent, 
                 noise, 
                 randomize_noise,
-                offset_power
+                offset_power,
+                features_in,
+                feature_scale
             )
         
         return self.forward_with_s(styles, offsets, offset_power, return_latents, noise, randomize_noise)
@@ -488,13 +500,16 @@ class OffsetsGenerator(nn.Module):
         styles,
         offsets,
         return_latents=False,
+        return_features=False,
         inject_index=None,
         truncation=1,
         truncation_latent=None,
         input_is_latent=False,
         noise=None,
         randomize_noise=True,
-        offset_power=1.
+        offset_power=1.,
+        features_in=None,
+        feature_scale=1.0
     ):
         if not input_is_latent:
             styles = [self.style(s) for s in styles]
@@ -532,12 +547,20 @@ class OffsetsGenerator(nn.Module):
 
             latent = torch.cat([latent, latent2], 1)
 
+        def insert_feature(x, layer_idx):
+            if features_in is not None and features_in[layer_idx] is not None:
+                x = (1 - feature_scale) * x + feature_scale * features_in[layer_idx].type_as(x)
+            return x
+        
+        outs = []
         out = self.input(latent)
+        if return_features: outs.append(out)
         out = self.conv1(
             out, latent[:, 0],
             offsets['conv_0'] if offsets is not None else None,
             noise=noise[0], offset_power=offset_power
         )
+        if return_features: outs.append(out)
 
         skip = self.to_rgb1(out, latent[:, 1])
         i = 1
@@ -545,16 +568,20 @@ class OffsetsGenerator(nn.Module):
         for conv1, conv2, noise1, noise2, to_rgb in zip(
             self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):
+            out = insert_feature(out, i)
             out = conv1(
                 out, latent[:, i],
                 offsets['conv_{}'.format(i)] if offsets is not None else None,
                 noise=noise1, offset_power=offset_power
             )
+            if return_features: outs.append(out)
+            out = insert_feature(out, i + 1)
             out = conv2(
                 out, latent[:, i + 1],
                 offsets['conv_{}'.format(i + 1)] if offsets is not None else None,
                 noise=noise2, offset_power=offset_power
             )
+            if return_features: outs.append(out)
             skip = to_rgb(out, latent[:, i + 2], skip)
             i += 2
 
@@ -562,7 +589,8 @@ class OffsetsGenerator(nn.Module):
 
         if return_latents:
             return image, latent
-
+        elif return_features:
+            return image, outs
         else:
             return image, None
         
