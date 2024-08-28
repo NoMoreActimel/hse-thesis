@@ -1,5 +1,5 @@
 # Developing effective StyleGAN encoders for domain adaptation
-### This is the repo for my undergraduate thesis at HSE, the final text is in the [sedov-hse-thesis.pdf](sedov-hse-thesis.pdf)!
+### This is my undergraduate thesis at HSE, the final text is in the [sedov-hse-thesis.pdf](sedov-hse-thesis.pdf)!
 
 ### Initially we were working on the [StyleDomain repository](https://github.com/FusionBrainLab/StyleDomain)
 
