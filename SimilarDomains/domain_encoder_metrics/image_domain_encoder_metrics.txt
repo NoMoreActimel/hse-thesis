@@ -1,0 +1,484 @@
+jojo
+orig
+quality/jojo/ViT-B-32, 0.7822265625
+diversity/jojo/ViT-B-32, 0.1885986328125
+
+e4e
+quality/jojo/ViT-B-32, 0.783203125
+diversity/jojo/ViT-B-32, 0.171142578125
+
+fse
+quality/jojo/ViT-B-32, 0.77490234375
+diversity/jojo/ViT-B-32, 0.1756591796875
+
+fse_with_features
+quality/jojo/ViT-B-32, 0.65869140625
+diversity/jojo/ViT-B-32, 0.3017578125
+
+fse_with_generator_shift
+quality/jojo/ViT-B-32, 0.70166015625
+diversity/jojo/ViT-B-32, 0.26318359375
+
+____
+nigelwy_untitled_artwork_18
+orig
+quality/nigelwy_untitled_artwork_18/ViT-B-32, 0.7734375
+diversity/nigelwy_untitled_artwork_18/ViT-B-32, 0.2388916015625
+
+e4e
+quality/nigelwy_untitled_artwork_18/ViT-B-32, 0.7578125
+diversity/nigelwy_untitled_artwork_18/ViT-B-32, 0.237548828125
+
+fse
+quality/nigelwy_untitled_artwork_18/ViT-B-32, 0.7333984375
+diversity/nigelwy_untitled_artwork_18/ViT-B-32, 0.25341796875
+
+fse_with_features
+quality/nigelwy_untitled_artwork_18/ViT-B-32, 0.60498046875
+diversity/nigelwy_untitled_artwork_18/ViT-B-32, 0.33349609375
+
+fse_with_generator_shift
+quality/nigelwy_untitled_artwork_18/ViT-B-32, 0.64990234375
+diversity/nigelwy_untitled_artwork_18/ViT-B-32, 0.311279296875
+
+____
+digital_painting_jing
+orig
+quality/digital_painting_jing/ViT-B-32, 0.779296875
+diversity/digital_painting_jing/ViT-B-32, 0.21875
+
+e4e
+quality/digital_painting_jing/ViT-B-32, 0.76708984375
+diversity/digital_painting_jing/ViT-B-32, 0.2218017578125
+
+fse
+quality/digital_painting_jing/ViT-B-32, 0.7509765625
+diversity/digital_painting_jing/ViT-B-32, 0.224365234375
+
+fse_with_features
+quality/digital_painting_jing/ViT-B-32, 0.6748046875
+diversity/digital_painting_jing/ViT-B-32, 0.296875
+
+fse_with_generator_shift
+quality/digital_painting_jing/ViT-B-32, 0.70703125
+diversity/digital_painting_jing/ViT-B-32, 0.27294921875
+
+____
+titan_armin
+orig
+quality/titan_armin/ViT-B-32, 0.7802734375
+diversity/titan_armin/ViT-B-32, 0.2420654296875
+
+e4e
+quality/titan_armin/ViT-B-32, 0.7939453125
+diversity/titan_armin/ViT-B-32, 0.217041015625
+
+fse
+quality/titan_armin/ViT-B-32, 0.78173828125
+diversity/titan_armin/ViT-B-32, 0.21484375
+
+fse_with_features
+quality/titan_armin/ViT-B-32, 0.6728515625
+diversity/titan_armin/ViT-B-32, 0.308837890625
+
+fse_with_generator_shift
+quality/titan_armin/ViT-B-32, 0.708984375
+diversity/titan_armin/ViT-B-32, 0.281494140625
+
+____
+joker
+orig
+quality/joker/ViT-B-32, 0.76708984375
+diversity/joker/ViT-B-32, 0.12451171875
+
+e4e
+quality/joker/ViT-B-32, 0.77392578125
+diversity/joker/ViT-B-32, 0.11639404296875
+
+fse
+quality/joker/ViT-B-32, 0.78271484375
+diversity/joker/ViT-B-32, 0.1162109375
+
+fse_with_features
+quality/joker/ViT-B-32, 0.65087890625
+diversity/joker/ViT-B-32, 0.25732421875
+
+fse_with_generator_shift
+quality/joker/ViT-B-32, 0.76220703125
+diversity/joker/ViT-B-32, 0.1392822265625
+
+____
+oliver_wetter_corie_lynn_concept_1_final_back_web
+orig
+quality/oliver_wetter_corie_lynn_concept_1_final_back_web/ViT-B-32, 0.7001953125
+diversity/oliver_wetter_corie_lynn_concept_1_final_back_web/ViT-B-32, 0.265869140625
+
+e4e
+quality/oliver_wetter_corie_lynn_concept_1_final_back_web/ViT-B-32, 0.68896484375
+diversity/oliver_wetter_corie_lynn_concept_1_final_back_web/ViT-B-32, 0.25634765625
+
+fse
+quality/oliver_wetter_corie_lynn_concept_1_final_back_web/ViT-B-32, 0.68115234375
+diversity/oliver_wetter_corie_lynn_concept_1_final_back_web/ViT-B-32, 0.2476806640625
+
+fse_with_features
+quality/oliver_wetter_corie_lynn_concept_1_final_back_web/ViT-B-32, 0.58203125
+diversity/oliver_wetter_corie_lynn_concept_1_final_back_web/ViT-B-32, 0.33447265625
+
+fse_with_generator_shift
+quality/oliver_wetter_corie_lynn_concept_1_final_back_web/ViT-B-32, 0.607421875
+diversity/oliver_wetter_corie_lynn_concept_1_final_back_web/ViT-B-32, 0.3212890625
+
+____
+murasaki_nora_asuya
+orig
+quality/murasaki_nora_asuya/ViT-B-32, 0.7158203125
+diversity/murasaki_nora_asuya/ViT-B-32, 0.23779296875
+
+e4e
+quality/murasaki_nora_asuya/ViT-B-32, 0.71240234375
+diversity/murasaki_nora_asuya/ViT-B-32, 0.2257080078125
+
+fse
+quality/murasaki_nora_asuya/ViT-B-32, 0.697265625
+diversity/murasaki_nora_asuya/ViT-B-32, 0.2215576171875
+
+fse_with_features
+quality/murasaki_nora_asuya/ViT-B-32, 0.60400390625
+diversity/murasaki_nora_asuya/ViT-B-32, 0.314697265625
+
+fse_with_generator_shift
+quality/murasaki_nora_asuya/ViT-B-32, 0.63330078125
+diversity/murasaki_nora_asuya/ViT-B-32, 0.29541015625
+
+____
+disney_princess
+orig
+quality/disney_princess/ViT-B-32, 0.6533203125
+diversity/disney_princess/ViT-B-32, 0.1744384765625
+
+e4e
+quality/disney_princess/ViT-B-32, 0.638671875
+diversity/disney_princess/ViT-B-32, 0.157958984375
+
+fse
+quality/disney_princess/ViT-B-32, 0.630859375
+diversity/disney_princess/ViT-B-32, 0.1680908203125
+
+fse_with_features
+quality/disney_princess/ViT-B-32, 0.5400390625
+diversity/disney_princess/ViT-B-32, 0.3173828125
+
+fse_with_generator_shift
+quality/disney_princess/ViT-B-32, 0.59130859375
+diversity/disney_princess/ViT-B-32, 0.2305908203125
+
+____
+remi_castaneda_sean_connery_final
+orig
+quality/remi_castaneda_sean_connery_final/ViT-B-32, 0.7607421875
+diversity/remi_castaneda_sean_connery_final/ViT-B-32, 0.2646484375
+
+e4e
+quality/remi_castaneda_sean_connery_final/ViT-B-32, 0.75048828125
+diversity/remi_castaneda_sean_connery_final/ViT-B-32, 0.2393798828125
+
+fse
+quality/remi_castaneda_sean_connery_final/ViT-B-32, 0.72900390625
+diversity/remi_castaneda_sean_connery_final/ViT-B-32, 0.2464599609375
+
+fse_with_features
+quality/remi_castaneda_sean_connery_final/ViT-B-32, 0.64111328125
+diversity/remi_castaneda_sean_connery_final/ViT-B-32, 0.322265625
+
+fse_with_generator_shift
+quality/remi_castaneda_sean_connery_final/ViT-B-32, 0.6875
+diversity/remi_castaneda_sean_connery_final/ViT-B-32, 0.2861328125
+
+____
+stanislav_galai_04_23
+orig
+quality/stanislav_galai_04_23/ViT-B-32, 0.75390625
+diversity/stanislav_galai_04_23/ViT-B-32, 0.267333984375
+
+e4e
+quality/stanislav_galai_04_23/ViT-B-32, 0.740234375
+diversity/stanislav_galai_04_23/ViT-B-32, 0.255859375
+
+fse
+quality/stanislav_galai_04_23/ViT-B-32, 0.71240234375
+diversity/stanislav_galai_04_23/ViT-B-32, 0.27490234375
+
+fse_with_features
+quality/stanislav_galai_04_23/ViT-B-32, 0.607421875
+diversity/stanislav_galai_04_23/ViT-B-32, 0.35302734375
+
+fse_with_generator_shift
+quality/stanislav_galai_04_23/ViT-B-32, 0.64111328125
+diversity/stanislav_galai_04_23/ViT-B-32, 0.3388671875
+
+____
+anastasia
+orig
+quality/anastasia/ViT-B-32, 0.677734375
+diversity/anastasia/ViT-B-32, 0.26708984375
+
+e4e
+quality/anastasia/ViT-B-32, 0.67431640625
+diversity/anastasia/ViT-B-32, 0.2435302734375
+
+fse
+quality/anastasia/ViT-B-32, 0.67724609375
+diversity/anastasia/ViT-B-32, 0.2451171875
+
+fse_with_features
+quality/anastasia/ViT-B-32, 0.595703125
+diversity/anastasia/ViT-B-32, 0.342529296875
+
+fse_with_generator_shift
+quality/anastasia/ViT-B-32, 0.6201171875
+diversity/anastasia/ViT-B-32, 0.319580078125
+
+____
+sketch
+orig
+quality/sketch/ViT-B-32, 0.505859375
+diversity/sketch/ViT-B-32, 0.157470703125
+
+e4e
+quality/sketch/ViT-B-32, 0.51708984375
+diversity/sketch/ViT-B-32, 0.1729736328125
+
+fse
+quality/sketch/ViT-B-32, 0.513671875
+diversity/sketch/ViT-B-32, 0.1636962890625
+
+fse_with_features
+quality/sketch/ViT-B-32, 0.5
+diversity/sketch/ViT-B-32, 0.299072265625
+
+fse_with_generator_shift
+quality/sketch/ViT-B-32, 0.52685546875
+diversity/sketch/ViT-B-32, 0.2568359375
+
+____
+maria_trepalina_img_6833_1
+orig
+quality/maria_trepalina_img_6833_1/ViT-B-32, 0.7548828125
+diversity/maria_trepalina_img_6833_1/ViT-B-32, 0.25341796875
+
+e4e
+quality/maria_trepalina_img_6833_1/ViT-B-32, 0.744140625
+diversity/maria_trepalina_img_6833_1/ViT-B-32, 0.244873046875
+
+fse
+quality/maria_trepalina_img_6833_1/ViT-B-32, 0.73388671875
+diversity/maria_trepalina_img_6833_1/ViT-B-32, 0.25390625
+
+fse_with_features
+quality/maria_trepalina_img_6833_1/ViT-B-32, 0.64306640625
+diversity/maria_trepalina_img_6833_1/ViT-B-32, 0.327392578125
+
+fse_with_generator_shift
+quality/maria_trepalina_img_6833_1/ViT-B-32, 0.67041015625
+diversity/maria_trepalina_img_6833_1/ViT-B-32, 0.3134765625
+
+____
+rain_artwork_dtiyschallennge
+orig
+quality/rain_artwork_dtiyschallennge/ViT-B-32, 0.74072265625
+diversity/rain_artwork_dtiyschallennge/ViT-B-32, 0.2142333984375
+
+e4e
+quality/rain_artwork_dtiyschallennge/ViT-B-32, 0.72998046875
+diversity/rain_artwork_dtiyschallennge/ViT-B-32, 0.1956787109375
+
+fse
+quality/rain_artwork_dtiyschallennge/ViT-B-32, 0.71630859375
+diversity/rain_artwork_dtiyschallennge/ViT-B-32, 0.1993408203125
+
+fse_with_features
+quality/rain_artwork_dtiyschallennge/ViT-B-32, 0.6298828125
+diversity/rain_artwork_dtiyschallennge/ViT-B-32, 0.29150390625
+
+fse_with_generator_shift
+quality/rain_artwork_dtiyschallennge/ViT-B-32, 0.666015625
+diversity/rain_artwork_dtiyschallennge/ViT-B-32, 0.2646484375
+
+____
+mermaid
+orig
+quality/mermaid/ViT-B-32, 0.81494140625
+diversity/mermaid/ViT-B-32, 0.2003173828125
+
+e4e
+quality/mermaid/ViT-B-32, 0.82373046875
+diversity/mermaid/ViT-B-32, 0.163818359375
+
+fse
+quality/mermaid/ViT-B-32, 0.8173828125
+diversity/mermaid/ViT-B-32, 0.17236328125
+
+fse_with_features
+quality/mermaid/ViT-B-32, 0.69287109375
+diversity/mermaid/ViT-B-32, 0.290283203125
+
+fse_with_generator_shift
+quality/mermaid/ViT-B-32, 0.7548828125
+diversity/mermaid/ViT-B-32, 0.2445068359375
+
+____
+truc_huynh_hex_009v2
+orig
+quality/truc_huynh_hex_009v2/ViT-B-32, 0.78125
+diversity/truc_huynh_hex_009v2/ViT-B-32, 0.24365234375
+
+e4e
+quality/truc_huynh_hex_009v2/ViT-B-32, 0.771484375
+diversity/truc_huynh_hex_009v2/ViT-B-32, 0.2412109375
+
+fse
+quality/truc_huynh_hex_009v2/ViT-B-32, 0.7529296875
+diversity/truc_huynh_hex_009v2/ViT-B-32, 0.244873046875
+
+fse_with_features
+quality/truc_huynh_hex_009v2/ViT-B-32, 0.67236328125
+diversity/truc_huynh_hex_009v2/ViT-B-32, 0.31787109375
+
+fse_with_generator_shift
+quality/truc_huynh_hex_009v2/ViT-B-32, 0.69970703125
+diversity/truc_huynh_hex_009v2/ViT-B-32, 0.30224609375
+
+____
+speed_paint
+orig
+quality/speed_paint/ViT-B-32, 0.78076171875
+diversity/speed_paint/ViT-B-32, 0.254150390625
+
+e4e
+quality/speed_paint/ViT-B-32, 0.79296875
+diversity/speed_paint/ViT-B-32, 0.234375
+
+fse
+quality/speed_paint/ViT-B-32, 0.77099609375
+diversity/speed_paint/ViT-B-32, 0.24853515625
+
+fse_with_features
+quality/speed_paint/ViT-B-32, 0.64990234375
+diversity/speed_paint/ViT-B-32, 0.35205078125
+
+fse_with_generator_shift
+quality/speed_paint/ViT-B-32, 0.6904296875
+diversity/speed_paint/ViT-B-32, 0.32861328125
+
+____
+naufal_ilyasa_seraphine_ig_full_res
+orig
+quality/naufal_ilyasa_seraphine_ig_full_res/ViT-B-32, 0.69775390625
+diversity/naufal_ilyasa_seraphine_ig_full_res/ViT-B-32, 0.283935546875
+
+e4e
+quality/naufal_ilyasa_seraphine_ig_full_res/ViT-B-32, 0.69091796875
+diversity/naufal_ilyasa_seraphine_ig_full_res/ViT-B-32, 0.271240234375
+
+fse
+quality/naufal_ilyasa_seraphine_ig_full_res/ViT-B-32, 0.68603515625
+diversity/naufal_ilyasa_seraphine_ig_full_res/ViT-B-32, 0.275146484375
+
+fse_with_features
+quality/naufal_ilyasa_seraphine_ig_full_res/ViT-B-32, 0.6376953125
+diversity/naufal_ilyasa_seraphine_ig_full_res/ViT-B-32, 0.328369140625
+
+fse_with_generator_shift
+quality/naufal_ilyasa_seraphine_ig_full_res/ViT-B-32, 0.65625
+diversity/naufal_ilyasa_seraphine_ig_full_res/ViT-B-32, 0.317626953125
+
+____
+rich_d_amaru_studyfinal
+orig
+quality/rich_d_amaru_studyfinal/ViT-B-32, 0.76220703125
+diversity/rich_d_amaru_studyfinal/ViT-B-32, 0.249755859375
+
+e4e
+quality/rich_d_amaru_studyfinal/ViT-B-32, 0.7529296875
+diversity/rich_d_amaru_studyfinal/ViT-B-32, 0.2413330078125
+
+fse
+quality/rich_d_amaru_studyfinal/ViT-B-32, 0.7431640625
+diversity/rich_d_amaru_studyfinal/ViT-B-32, 0.25830078125
+
+fse_with_features
+quality/rich_d_amaru_studyfinal/ViT-B-32, 0.626953125
+diversity/rich_d_amaru_studyfinal/ViT-B-32, 0.345703125
+
+fse_with_generator_shift
+quality/rich_d_amaru_studyfinal/ViT-B-32, 0.66650390625
+diversity/rich_d_amaru_studyfinal/ViT-B-32, 0.3251953125
+
+____
+ricardo_viana_render2
+orig
+quality/ricardo_viana_render2/ViT-B-32, 0.73486328125
+diversity/ricardo_viana_render2/ViT-B-32, 0.2366943359375
+
+e4e
+quality/ricardo_viana_render2/ViT-B-32, 0.7255859375
+diversity/ricardo_viana_render2/ViT-B-32, 0.214111328125
+
+fse
+quality/ricardo_viana_render2/ViT-B-32, 0.71728515625
+diversity/ricardo_viana_render2/ViT-B-32, 0.2252197265625
+
+fse_with_features
+quality/ricardo_viana_render2/ViT-B-32, 0.64599609375
+diversity/ricardo_viana_render2/ViT-B-32, 0.3212890625
+
+fse_with_generator_shift
+quality/ricardo_viana_render2/ViT-B-32, 0.67236328125
+diversity/ricardo_viana_render2/ViT-B-32, 0.298828125
+
+____
+wesley_gardner_portraitstudy
+orig
+quality/wesley_gardner_portraitstudy/ViT-B-32, 0.69189453125
+diversity/wesley_gardner_portraitstudy/ViT-B-32, 0.32177734375
+
+e4e
+quality/wesley_gardner_portraitstudy/ViT-B-32, 0.68505859375
+diversity/wesley_gardner_portraitstudy/ViT-B-32, 0.306884765625
+
+fse
+quality/wesley_gardner_portraitstudy/ViT-B-32, 0.6611328125
+diversity/wesley_gardner_portraitstudy/ViT-B-32, 0.326171875
+
+fse_with_features
+quality/wesley_gardner_portraitstudy/ViT-B-32, 0.55126953125
+diversity/wesley_gardner_portraitstudy/ViT-B-32, 0.39404296875
+
+fse_with_generator_shift
+quality/wesley_gardner_portraitstudy/ViT-B-32, 0.5869140625
+diversity/wesley_gardner_portraitstudy/ViT-B-32, 0.37939453125
+
+____
+titan_erwin
+orig
+quality/titan_erwin/ViT-B-32, 0.8193359375
+diversity/titan_erwin/ViT-B-32, 0.208740234375
+
+e4e
+quality/titan_erwin/ViT-B-32, 0.83203125
+diversity/titan_erwin/ViT-B-32, 0.189208984375
+
+fse
+quality/titan_erwin/ViT-B-32, 0.81005859375
+diversity/titan_erwin/ViT-B-32, 0.1968994140625
+
+fse_with_features
+quality/titan_erwin/ViT-B-32, 0.69580078125
+diversity/titan_erwin/ViT-B-32, 0.294677734375
+
+fse_with_generator_shift
+quality/titan_erwin/ViT-B-32, 0.74609375
+diversity/titan_erwin/ViT-B-32, 0.25732421875
+
+____

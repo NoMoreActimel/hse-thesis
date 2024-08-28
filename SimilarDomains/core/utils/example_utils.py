@@ -20,8 +20,10 @@ from core.mappers import mapper_registry
 from restyle_encoders.psp import pSp
 from restyle_encoders.e4e import e4e
 
-from ..FeatureStyleEncoder.nets.feature_style_encoder import fs_encoder_v2
-from ..FeatureStyleEncoder.utils.functions import downscale
+from FeatureStyleEncoder.nets.feature_style_encoder import fs_encoder_v2
+from FeatureStyleEncoder.utils.functions import downscale
+
+from gan_models.StyleGAN2.model import Generator
 
 
 def read_img(img_path, align_input=False):
@@ -51,8 +53,8 @@ class Inferencer(nn.Module):
         self.sg2_source.to(self.device)
         
     @torch.no_grad()
-    def forward(self, latents, text_description=None, mx_n=1, no_mixing=False, **kwargs):
-        src_imgs, _ = self.sg2_source(latents, **kwargs)
+    def forward(self, latents, text_description=None, mx_n=1, no_mixing=False, return_generator_features=False, offsets_coeffs=None, **kwargs):
+        src_imgs, src_features = self.sg2_source(latents, **kwargs)
         
         if not kwargs.get('input_is_latent', False):
             if self.model_type == 'original':
@@ -69,7 +71,7 @@ class Inferencer(nn.Module):
             kwargs.pop('truncation')
         
         if self.model_type == 'original':
-            trg_imgs, _ = self.model_da(latents, **kwargs)
+            trg_imgs, trg_features = self.model_da(latents, **kwargs)
         elif self.model_type == 'mapper':
             if text_description is not None:
                 text_encoded = self._encode_text(text_description)
@@ -77,13 +79,20 @@ class Inferencer(nn.Module):
             else:
                 offsets = None
                 
-            trg_imgs, _ = self.sg2_source(latents, offsets=offsets, **kwargs)
+            trg_imgs, trg_features = self.sg2_source(latents, offsets=offsets, **kwargs)
         elif self.model_type == 'parametrization':
-            trg_imgs, _ = self.sg2_source(latents, offsets=self.model_da(), **kwargs)
+            offsets = self.model_da()
+            if offsets_coeffs:
+                assert len(offsets_coeffs) == 18 and len(offsets) == 17
+                for coeff, conv_name in zip(offsets_coeffs[1:], offsets.keys()):
+                    offsets[conv_name]['in'] = coeff * offsets[conv_name]['in']
+            trg_imgs, trg_features = self.sg2_source(latents, offsets=offsets, **kwargs)
             
         else:
             trg_imgs = None
         
+        if return_generator_features:
+            return (src_imgs, trg_imgs), (src_features, trg_features)
         return src_imgs, trg_imgs
     
     def _mtg_mixing_noise(self, latents, truncation=1, pw=1.):
@@ -193,7 +202,7 @@ def to_im(torch_image, **kwargs):
 
 
 @torch.no_grad()
-def project_e4e(img, model_path, name=None, device='cuda:0'):
+def project_e4e(img, model_path, name=None, use_transforms=True, device='cuda:0'):
     # model_path = 'models/e4e_ffhq_encode.pt'
     ckpt = torch.load(model_path, map_location='cpu')
     opts = ckpt['opts']
@@ -201,16 +210,25 @@ def project_e4e(img, model_path, name=None, device='cuda:0'):
     opts= Namespace(**opts)
     net = e4e(opts).eval().to(device)
 
-    transform = transforms.Compose(
-        [
-            transforms.Resize(256),
-            transforms.CenterCrop(256),
-            transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
-        ]
-    )
+    if use_transforms:
+        transform = transforms.Compose(
+            [
+                transforms.Resize(256),
+                transforms.CenterCrop(256),
+                transforms.ToTensor(),
+                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+            ]
+        )
 
-    img = transform(img).unsqueeze(0).to(device)
+        img = transform(img)
+    
+    print(img.shape)
+    if img.dim() < 4:
+        img = img.unsqueeze(0)
+    print(img.shape)
+
+    img = img.to(device)
+
     images, w_plus = net(img, randomize_noise=False, return_latents=True)
     if name is not None:
         result_file = {}
@@ -257,8 +275,8 @@ def project_restyle_psp(img, model_path, name=None, device='cuda:0'):
 
 
 
-def read_fse_config(config_name):
-    config = yaml.load(open('./FeatureStyleEncoder/configs/' + config_name + '.yaml', 'r'), Loader=yaml.FullLoader)
+def read_fse_config(config_path):
+    config = yaml.load(open(config_path, 'r'), Loader=yaml.FullLoader)
 
     scale = int(np.log2(config['resolution']/config['enc_resolution']))
     scale_mode = config.get('scale_mode', 'bilinear')
@@ -282,18 +300,20 @@ def read_fse_config(config_name):
     return scale, scale_mode, idx_k, n_styles, enc_residual, enc_residual_coeff, resnet_layers, stride 
 
 
-
 @torch.no_grad()
-def project_fse_without_image_generation(img,
-                model_path='./FeatureStyleEncoder/pretrained_models/143_enc.pth',
-                fse_config_name='001',
-                arcface_model_path='./FeatureStyleEncoder/pretrained_models/backbone.pth',
-                stylegan_model_path='./'
-                latent_avg=None,
-                name=None,
-                device='cuda:0'):    
+def project_fse_without_image_generation(
+        img,
+        model_path='pretrained/143_enc.pth',
+        fse_config_path='FeatureStyleEncoder/configs/001.yaml',
+        fse_config_name='001',  # рудимент
+        arcface_model_path='pretrained/backbone.pth',
+        stylegan_model_path='pretrained/psp_ffhq_encode.pt',
+        latent_avg=None,
+        name=None,
+        use_transforms=True,
+        device='cuda:0'):
     
-    scale, scale_mode, idx_k, n_styles, enc_residual, enc_residual_coeff, resnet_layers, stride = read_fse_config(fse_config_name)
+    scale, scale_mode, idx_k, n_styles, enc_residual, enc_residual_coeff, resnet_layers, stride = read_fse_config(fse_config_path)
 
     opts = dict()
     opts['arcface_model_path'] = arcface_model_path
@@ -309,25 +329,44 @@ def project_fse_without_image_generation(img,
     )
     net.load_state_dict(torch.load(model_path))
     net = net.eval().to(device)
+    print(sum(p.numel() for p in net.parameters()))
 
     if latent_avg is None:
-        stylegan_state_dict = torch.load(stylegan_model_path, map_location='cpu') ?
+        stylegan_state_dict = torch.load(stylegan_model_path, map_location='cpu')
         latent_avg = stylegan_state_dict['latent_avg'].to(device)
 
-    transform = transforms.Compose(
-        [
-            transforms.Resize(256),
-            transforms.CenterCrop(256),
-            transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
-        ]
-    )
+    if use_transforms:
+        transform = transforms.Compose(
+            [
+                transforms.Resize((1024, 1024)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+            ]
+        )
 
-    img = transform(img).unsqueeze(0).to(device)
+        img = transform(img)
+        print(img.shape)
 
-    w_recon, fea = net(downscale(img, scale, scale_mode)) 
+    if img.dim() < 4:
+        img = img.unsqueeze(0)
+    print(img.shape)
+
+    img = img.to(device)
+
+    img = downscale(img, scale, scale_mode)
+    print(img.shape)
+
+    w_recon, fea = net(img)
     w_recon = w_recon + latent_avg
-    features = [None] * idx_k + [fea] + [None] * (n_styles - 1 - idx_k)
+    
+    if len(w_recon) > 1:
+        features = []
+        for f in fea:
+            f = f.unsqueeze(0)
+            features.append([None] * idx_k + [f] + [None] * (n_styles - 1 - idx_k))
+        w_recon = w_recon.unsqueeze(0)
+    else:
+        features = [None] * idx_k + [fea] + [None] * (n_styles - 1 - idx_k)
 
     if name is not None:
         result_file = {}

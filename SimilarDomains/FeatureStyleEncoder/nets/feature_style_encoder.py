@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.nn.utils import spectral_norm
 from torchvision import models, utils
 
-from arcface.iresnet import *
+from ..arcface.iresnet import *
 
 
 class fs_encoder_v2(nn.Module):

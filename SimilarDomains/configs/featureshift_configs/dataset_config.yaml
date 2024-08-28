@@ -1,0 +1,18 @@
+device: cuda:0
+root_path: /home/sasedov/StyleDomain/SimilarDomains
+dataset:
+  device: cuda:0
+  process_data: false
+  processing_batch_size: 16
+  dataset_size_limit: 10000
+  image_size: 1024
+  align_input: false
+  dataset_path: /home/aalanov/Bobkov_Denis/datasets/FFHQ/
+  processed_path: /home/sasedov/StyleDomain/FFHQ_featureshift_processed_fse_da
+  inversion:
+    e4e_model_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/e4e_ffhq_encode.pt
+    fse_model_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/143_enc.pth
+    fse_config_path: /home/sasedov/StyleDomain/SimilarDomains/FeatureStyleEncoder/configs/001.yaml
+    arcface_model_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/backbone.pth
+    checkpoint_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/StyleGAN2/stylegan2-ffhq-config-f.pt
+    fse_idx_k: 5

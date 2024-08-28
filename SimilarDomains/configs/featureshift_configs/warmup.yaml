@@ -1,0 +1,123 @@
+device: cuda:0
+root_path: /home/sasedov/StyleDomain/SimilarDomains
+s_domain: mermaid
+image_size: 1024
+seed: 0
+
+exp:
+  config_dir: configs
+  config: featureshift_config.yaml
+  project: featureshift_test_project
+  tags:
+    - test
+    - mermaid
+  name: 20k, batch12, only inversion, w/o norm
+  root: /home/sasedov/StyleDomain/SimilarDomains/
+  notes: empty notes
+  logging: true
+
+train_dataset:
+  device: cuda:0
+  batch_size: 12
+  num_workers: 1
+  shuffle: false
+  process_data: false
+  processing_batch_size: 16
+  dataset_size_limit: 10000
+  image_size: 1024
+  align_input: false
+  dataset_path: /home/aalanov/Bobkov_Denis/datasets/FFHQ/
+  processed_path: /home/sasedov/StyleDomain/FFHQ_featureshift_processed_2
+  inversion:
+    e4e_model_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/e4e_ffhq_encode.pt
+    fse_model_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/143_enc.pth
+    fse_config_path: /home/sasedov/StyleDomain/SimilarDomains/FeatureStyleEncoder/configs/001.yaml
+    arcface_model_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/backbone.pth
+    checkpoint_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/StyleGAN2/stylegan2-ffhq-config-f.pt
+    fse_idx_k: 5
+
+val_dataset:
+  device: cuda:0
+  batch_size: 4
+  num_workers: 1
+  shuffle: false
+  process_data: false
+  processing_batch_size: 4
+  dataset_size_limit: 4
+  image_size: 1024
+  align_input: false
+  dataset_path: /home/aalanov/Bobkov_Denis/datasets/FFHQ/
+  processed_path: /home/sasedov/StyleDomain/val_FFHQ_featureshift_processed
+  inversion:
+    e4e_model_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/e4e_ffhq_encode.pt
+    fse_model_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/143_enc.pth
+    fse_config_path: /home/sasedov/StyleDomain/SimilarDomains/FeatureStyleEncoder/configs/001.yaml
+    arcface_model_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/backbone.pth
+    checkpoint_path: /home/sasedov/StyleDomain/SimilarDomains/pretrained/StyleGAN2/stylegan2-ffhq-config-f.pt
+    fse_idx_k: 5
+
+training:
+  device: cuda:0
+
+  iter_num: 20000
+  val_freq: 100
+  log_step: 10
+  log_images_step: 100
+  save_step: 1000
+
+  use_inversion_adv_loss: true
+  inversion_adv_loss_min_step: 10000
+
+  use_domain_adv_loss: false
+  use_domain_disc_loss: false
+  domain_adv_loss_min_step: 10000
+
+  use_domain_inversion_loss: false
+
+  use_e4e_domain_features_loss: false
+  use_e4e_inversion_features_loss: false
+  use_fse_inversion_features_loss: false
+  only_inversion: true
+  
+  calculate_grad_norms: true
+  clip_grad_norm: 100.0
+
+  patch_key: s_delta
+  phase: feature_shift
+  source_generator: stylegan2
+  source_generator_args:
+    checkpoint_path: pretrained/StyleGAN2/stylegan2-ffhq-config-f.pt
+    use_feature_shift_conv: false
+  trainable: stylegan2
+  trainable_generator_args:
+    checkpoint_path: pretrained/StyleGAN2/stylegan2-ffhq-config-f.pt
+    use_feature_shift_conv: true
+    feature_shift_conv_res: 16
+    feature_shift_layer_idx: 5
+  source_discriminator_path: /home/sasedov/HairFastGAN/pretrained_models/StyleGAN/ffhq.pkl
+
+  losses_dict:
+    inversion_MSE: 1.0
+    inversion_LPIPS: 0.8
+    inversion_ID: 0.1
+    inversion_Adv: 0.01
+    inversion_features_MSE: 0.0
+  
+  optimization_setup:
+    optimizer:
+      lr: 0.0001
+      weight_decay: 0.0
+      betas:
+      - 0.9
+      - 0.999
+    # domain_discriminator_optimizer:
+    #   lr: 0.05
+    #   weight_decay: 0.1
+    # scheduler:
+    #   n_steps: 20
+    #   start_lr: 0.0001
+    
+  checkpointing:
+    is_on: true
+    start_from: false
+    step_backup: 1000

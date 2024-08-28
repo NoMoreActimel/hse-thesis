@@ -1,0 +1,114 @@
+jojo
+featureshift
+quality/jojo/ViT-B-32, 0.744140625
+diversity/jojo/ViT-B-32, 0.21826171875
+
+____
+nigelwy_untitled_artwork_18
+featureshift
+quality/nigelwy_untitled_artwork_18/ViT-B-32, 0.69775390625
+diversity/nigelwy_untitled_artwork_18/ViT-B-32, 0.286376953125
+
+____
+titan_armin
+featureshift
+quality/titan_armin/ViT-B-32, 0.72900390625
+diversity/titan_armin/ViT-B-32, 0.256591796875
+
+____
+stanislav_galai_04_23
+featureshift
+quality/stanislav_galai_04_23/ViT-B-32, 0.69921875
+diversity/stanislav_galai_04_23/ViT-B-32, 0.31005859375
+
+____
+mermaid
+featureshift
+quality/mermaid/ViT-B-32, 0.81689453125
+diversity/mermaid/ViT-B-32, 0.201904296875
+
+____
+speed_paint
+featureshift
+quality/speed_paint/ViT-B-32, 0.7421875
+diversity/speed_paint/ViT-B-32, 0.280029296875
+
+____
+rich_d_amaru_studyfinal
+featureshift
+quality/rich_d_amaru_studyfinal/ViT-B-32, 0.72607421875
+diversity/rich_d_amaru_studyfinal/ViT-B-32, 0.273193359375
+
+____
+wesley_gardner_portraitstudy
+featureshift
+quality/wesley_gardner_portraitstudy/ViT-B-32, 0.62841796875
+diversity/wesley_gardner_portraitstudy/ViT-B-32, 0.34912109375
+
+____
+titan_erwin
+featureshift
+quality/titan_erwin/ViT-B-32, 0.78125
+diversity/titan_erwin/ViT-B-32, 0.22265625
+
+____
+modigliani_painting
+featureshift
+quality/modigliani_painting/ViT-B-32, 0.359375
+diversity/modigliani_painting/ViT-B-32, 0.1427001953125
+
+____
+hermione_granger
+featureshift
+quality/hermione_granger_(harry_potter)/ViT-B-32, 0.307373046875
+diversity/hermione_granger_(harry_potter)/ViT-B-32, 0.25439453125
+
+____
+dali_painting
+featureshift
+quality/dali_painting/ViT-B-32, 0.350341796875
+diversity/dali_painting/ViT-B-32, 0.132568359375
+
+____
+neanderthal
+featureshift
+quality/neanderthal/ViT-B-32, 0.3681640625
+diversity/neanderthal/ViT-B-32, 0.11004638671875
+
+____
+ukiyo-e
+featureshift
+quality/a_painting_in_ukiyo-e_style/ViT-B-32, 0.33154296875
+diversity/a_painting_in_ukiyo-e_style/ViT-B-32, 0.1297607421875
+
+____
+botero
+featureshift
+quality/fernando_botero_painting/ViT-B-32, 0.392822265625
+diversity/fernando_botero_painting/ViT-B-32, 0.13818359375
+
+____
+modigliani_painting_indomain
+featureshift
+quality/modigliani_painting_(indomain)/ViT-B-32, 0.3134765625
+diversity/modigliani_painting_(indomain)/ViT-B-32, 0.253173828125
+
+____
+tolkien_elf
+featureshift
+quality/tolkien_elf/ViT-B-32, 0.349853515625
+diversity/tolkien_elf/ViT-B-32, 0.13623046875
+
+____
+werewolf
+featureshift
+quality/werewolf/ViT-B-32, 0.3125
+diversity/werewolf/ViT-B-32, 0.086181640625
+
+____
+hermione_granger_indomain
+featureshift
+quality/hermione_granger_(harry_potter)_(indomain)/ViT-B-32, 0.2861328125
+diversity/hermione_granger_(harry_potter)_(indomain)/ViT-B-32, 0.3125
+
+____

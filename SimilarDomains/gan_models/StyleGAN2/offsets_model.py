@@ -12,6 +12,7 @@ from gan_models.StyleGAN2.model import (
     PixelNorm, EqualLinear, Blur, ModulatedConv2d,
     NoiseInjection, ConstantInput, ToRGB
 )
+from gan_models.StyleGAN2.featureshift_conv import FeatureiResnet
 
 from core.stylegan_patches import modulation_patches, decomposition_patches, style_patches
 
@@ -283,7 +284,7 @@ class OffsetsStyledConv(nn.Module):
         out = self.noise(out, noise=noise)
         out = self.activate(out)
         return out
-
+    
 
 class OffsetsGenerator(nn.Module):
     def __init__(
@@ -294,8 +295,10 @@ class OffsetsGenerator(nn.Module):
         channel_multiplier=2,
         blur_kernel=[1, 3, 3, 1],
         lr_mlp=0.01,
-        use_feature_insertion=False,
-        feature_insertion_k=None
+        fse_idx_k=5,
+        use_feature_shift_conv=False,
+        feature_shift_conv_res=16,
+        feature_shift_layer_idx=5
     ):
         super().__init__()
 
@@ -377,16 +380,32 @@ class OffsetsGenerator(nn.Module):
             self.to_rgbs.append(ToRGB(out_channel, style_dim))
 
             in_channel = out_channel
+        
+        # You can ommit this field if features_in will be a list
+        # For the tensor features_in support fill this in
+        self.fse_idx_k = fse_idx_k
+
+        self.feature_shift_conv = None
+        self.use_feature_shift_conv = use_feature_shift_conv
+        self.feature_shift_conv_res = feature_shift_conv_res
+        self.feature_shift_layer_idx = feature_shift_layer_idx
+        if use_feature_shift_conv:
+            # self.feature_shift_conv = OffsetsFeatureShiftConv(
+            #     input_channels=self.channels[feature_shift_conv_res],
+            #     output_channels=self.channels[feature_shift_conv_res],
+            #     kernel_size=1
+            # )
+            ch = self.channels[feature_shift_conv_res]
+            self.feature_shift_conv = FeatureiResnet(
+                blocks=[[2 * ch, 2], [(3 * ch) // 2, 2], [ch, 2]],
+                inplanes=2 * ch  # 2 * ch because input is concatenated with delta
+            )
 
         self.n_latent = self.log_size * 2 - 2
         
         self.modulation_layers = [self.conv1.conv.modulation, self.to_rgb1.conv.modulation] + \
                                  [layer.conv.modulation for layer in self.convs]            + \
                                  [layer.conv.modulation for layer in self.to_rgbs]
-
-        self.use_feature_insertion = use_feature_insertion
-        self.feature_insertion_k = feature_insertion_k
-
         
     def make_noise(self):
         device = self.input.input.device
@@ -413,6 +432,7 @@ class OffsetsGenerator(nn.Module):
     def get_s_code(self, styles, input_is_latent, truncation_latent, truncation, inject_index=None):
         if not input_is_latent:
             styles = [self.style(s) for s in styles]
+            print('meh-styles', styles[0].shape)
         
         if truncation < 1:
             style_t = []
@@ -431,6 +451,7 @@ class OffsetsGenerator(nn.Module):
 
             if styles[0].ndim < 3:
                 latent = styles[0].unsqueeze(1).repeat(1, inject_index, 1)
+                print('meh inject', latent.shape)
             else:
                 latent = styles[0]
         else:
@@ -458,7 +479,18 @@ class OffsetsGenerator(nn.Module):
             i += 2
 
         return s_codes
-    
+
+    def get_conv_output(self, conv, input1, input2, latent, offset, noise, offset_power, use_without_offset=True):
+        """
+        Computes outputs with or without offsets using flag,
+        Could be used for Inference with Feature-Style-Encoder, 
+        shifting feature maps towards the same direction as the original generator
+        Refer to Formula 1 at https://arxiv.org/pdf/2202.02183.pdf
+        """
+        output1 = conv(input1, latent, offset, noise=noise, offset_power=offset_power)
+        output2 = conv(input2, latent, None, noise=noise, offset_power=offset_power) if use_without_offset else None
+        return output1, output2
+
     def forward(
         self,
         styles,
@@ -474,7 +506,10 @@ class OffsetsGenerator(nn.Module):
         randomize_noise=False,
         offset_power=1.,
         features_in=None,
-        feature_scale=1.0
+        shift_with_generator_feature_map=False,
+        feature_scale=1.0,
+        feature_shift_delta=None,
+        return_feature_shift_output=False
     ):
         if not is_s_code:
             return self.forward_with_w(
@@ -490,7 +525,10 @@ class OffsetsGenerator(nn.Module):
                 randomize_noise,
                 offset_power,
                 features_in,
-                feature_scale
+                shift_with_generator_feature_map,
+                feature_scale,
+                feature_shift_delta,
+                return_feature_shift_output
             )
         
         return self.forward_with_s(styles, offsets, offset_power, return_latents, noise, randomize_noise)
@@ -509,8 +547,14 @@ class OffsetsGenerator(nn.Module):
         randomize_noise=True,
         offset_power=1.,
         features_in=None,
-        feature_scale=1.0
+        shift_with_generator_feature_map=False,
+        feature_scale=1.0,
+        feature_shift_delta=None,
+        return_feature_shift_output=False
     ):
+        # if features_in is not None:
+        #     print('features_in shapes:', *[f.shape if f is not None else f for f in features_in])
+        
         if not input_is_latent:
             styles = [self.style(s) for s in styles]
 
@@ -546,19 +590,70 @@ class OffsetsGenerator(nn.Module):
             latent2 = styles[1].unsqueeze(1).repeat(1, self.n_latent - inject_index, 1)
 
             latent = torch.cat([latent, latent2], 1)
-
-        def insert_feature(x, layer_idx):
-            if features_in is not None and features_in[layer_idx] is not None:
-                x = (1 - feature_scale) * x + feature_scale * features_in[layer_idx].type_as(x)
-            return x
         
+        print("latent.shape:", latent.shape)
+
+        if self.use_feature_shift_conv: assert feature_shift_delta is not None, "Provide feature_shift_delta!"
+
+        def _insert_feature(input, input_wo_offset, features):
+            output = (1 - feature_scale) * input + feature_scale * features.type_as(input)
+            if shift_with_generator_feature_map:
+                output = output + input - input_wo_offset
+                print(torch.norm(output), torch.norm(input - input_wo_offset))
+            return output, False # stop calculating original feature maps without offsets
+
+        def insert_feature(input, input_wo_offset, layer_idx):
+            # print(f'In insert feature, input.shape: {input.shape}, layer_idx: {layer_idx}')
+            if features_in is not None:
+                if isinstance(features_in, torch.Tensor):
+                    if layer_idx == self.fse_idx_k:
+                        return _insert_feature(input, input_wo_offset, features_in)
+                elif isinstance(features_in[0], list):
+                    if features_in[0][layer_idx] is not None:
+                        output = torch.cat([
+                            _insert_feature(input[ind], input_wo_offset[ind], f[layer_idx])[0]
+                            for ind, f in enumerate(features_in)
+                        ])
+                        assert input.shape == output.shape, \
+                            f"batched insert_feature on list features_in error: {input.shape} -> {output.shape}"
+                        return output, False  # stop calculating original feature maps without offsets
+                elif features_in[layer_idx] is not None:
+                    print(layer_idx, input.shape, features_in[layer_idx].shape)
+                    return _insert_feature(input, input_wo_offset, features_in[layer_idx])
+            return input, shift_with_generator_feature_map
+        
+        def shift_feature(input, input_wo_offset, layer_idx):
+            # print(f'In shift feature, input.shape: {input.shape}, layer_idx: {layer_idx}')
+            if self.use_feature_shift_conv:
+                if self.feature_shift_layer_idx == layer_idx:
+                    print(f"Norm before feature_shift: {torch.norm(input)}")
+                    assert self.feature_shift_conv_res == input.shape[-2] and input.shape[-2] == input.shape[-1], \
+                        f"Shape mismatch for feature_shift with res {self.feature_shift_conv_res}, input.shape: {input.shape}"
+                    assert feature_shift_delta.shape == input.shape, \
+                        f"Shape mismatch for feature_shift with input.shape: {input.shape} and feature_shift_delta.shape: {feature_shift_delta}"
+                    shift_input = torch.cat([input, feature_shift_delta], dim=1)
+                    print(f'Shapes in feature_shift, input: {input.shape}, delta: {feature_shift_delta.shape}, shift_input: {shift_input.shape}')
+
+                    output = self.feature_shift_conv(shift_input)
+                    print(f'output: {output.shape}')
+                    print(f"Norm after feature_shift: {torch.norm(output)}")
+
+                    if return_feature_shift_output:
+                        feature_shift_out.append(output)
+                    
+                    return output, input_wo_offset
+            return input, input_wo_offset
+        
+        feature_shift_out = []
         outs = []
         out = self.input(latent)
         if return_features: outs.append(out)
-        out = self.conv1(
-            out, latent[:, 0],
+
+        out, out_wo_offsets = self.get_conv_output(
+            self.conv1, out, out, latent[:, 0],
             offsets['conv_0'] if offsets is not None else None,
-            noise=noise[0], offset_power=offset_power
+            noise=noise[0], offset_power=offset_power,
+            use_without_offset=shift_with_generator_feature_map
         )
         if return_features: outs.append(out)
 
@@ -568,18 +663,25 @@ class OffsetsGenerator(nn.Module):
         for conv1, conv2, noise1, noise2, to_rgb in zip(
             self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):
-            out = insert_feature(out, i)
-            out = conv1(
-                out, latent[:, i],
+            # print(f'{i}-th layer shape: {out.shape}')
+            out, shift_with_generator_feature_map = insert_feature(out, out_wo_offsets, i)
+            out, out_wo_offsets = shift_feature(out, out_wo_offsets, i)
+            out, out_wo_offsets = self.get_conv_output(
+                conv1, out, out_wo_offsets, latent[:, i],
                 offsets['conv_{}'.format(i)] if offsets is not None else None,
-                noise=noise1, offset_power=offset_power
+                noise=noise1, offset_power=offset_power,
+                use_without_offset=shift_with_generator_feature_map
             )
             if return_features: outs.append(out)
-            out = insert_feature(out, i + 1)
-            out = conv2(
-                out, latent[:, i + 1],
+            
+            # print(f'{i+1}-th layer shape: {out.shape}')
+            out, shift_with_generator_feature_map = insert_feature(out, out_wo_offsets, i + 1)
+            out, out_wo_offsets = shift_feature(out, out_wo_offsets, i + 1)
+            out, out_wo_offsets = self.get_conv_output(
+                conv2, out, out_wo_offsets, latent[:, i + 1],
                 offsets['conv_{}'.format(i + 1)] if offsets is not None else None,
-                noise=noise2, offset_power=offset_power
+                noise=noise2, offset_power=offset_power,
+                use_without_offset=shift_with_generator_feature_map
             )
             if return_features: outs.append(out)
             skip = to_rgb(out, latent[:, i + 2], skip)
@@ -591,6 +693,8 @@ class OffsetsGenerator(nn.Module):
             return image, latent
         elif return_features:
             return image, outs
+        elif return_feature_shift_output:
+            return image, feature_shift_out[0]
         else:
             return image, None
         

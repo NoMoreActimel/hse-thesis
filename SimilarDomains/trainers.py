@@ -9,6 +9,7 @@ import clip
 import torchvision.transforms as transforms
 import torch.distributions as dis
 import typing as tp
+import yaml
 
 from pathlib import Path
 
@@ -23,7 +24,7 @@ from core.utils.common import (
     w_idx_to_style_idx
 )
 
-from core.utils.example_utils import read_img, project_e4e
+from core.utils.example_utils import read_img, project_e4e, project_fse_without_image_generation
 
 from core.loss import DirectLoss
 from core.utils.math_utils import (
@@ -1222,3 +1223,359 @@ class DiFATrainer(Image2ImageSingleDomainAdaptationTrainer):
         return {
             'da_type': 'im2im_difa'
         }
+
+
+
+
+class SingleDomainFeaturesShiftAdaptationTrainer(BaseDomainAdaptationTrainer):
+    def __init__(self, config):
+        super().__init__(config)
+    
+    def _setup_trainable(self):
+        if self.config.training.patch_key == 'original':
+            self.trainable = uda_models[self.config.training.generator](
+                **self.config.generator_args[self.config.training.generator]
+            )
+            trainable_layers = list(self.trainable.get_training_layers(
+                phase=self.config.training.phase
+            ))
+            self.trainable.freeze_layers()
+            self.trainable.unfreeze_layers(trainable_layers)
+        elif self.config.training.get('adaptive', False):
+            
+            from stylespace_core.stylespace_models import AdaptiveModel
+            
+            self.trainable = AdaptiveModel(
+                min_number_ch=self.config.training.adaptive_min_ch,
+                cutout_ch=self.config.training.adaptive_cutout_rate,
+                prune_method=self.config.training.adaptive_prune_method,
+                prune_step=self.config.training.adaptive_prune_step,
+            )
+            
+        else:
+            self.trainable = BaseParametrization(
+                self.config.training.patch_key,
+                get_stylegan_conv_dimensions(self.source_generator.generator.size),
+                no_coarse=self.config.training.get('no_coarse', False),
+                no_medium=self.config.training.get('no_medium', False),
+                no_fine=self.config.training.get('no_fine', False)
+            )
+
+        self.trainable.to(self.device)
+    
+    def forward_trainable(self, latents, **kwargs) -> tp.Tuple[torch.Tensor, tp.Optional[torch.Tensor]]:
+        if self.config.training.patch_key == "original":
+            sampled_images, _ = self.trainable(
+                latents, **kwargs
+            )
+            offsets = None
+        elif self.config.training.get('adaptive', False):
+            if not kwargs.get('is_s_code', False):
+                s_code = self.source_generator.get_s_code(latents, **kwargs)
+            
+            s_code, offsets = self.trainable(s_code)
+            sampled_images, _ = self.source_generator(
+                s_code, truncation=kwargs.get('truncation', 1), is_s_code=True
+            )
+        else:
+            offsets = self.trainable()
+            sampled_images, _ = self.source_generator(
+                latents, offsets=offsets, **kwargs
+            )
+
+        return sampled_images, offsets
+    
+    @torch.no_grad()
+    def log_images(self):
+        self.trainable.eval()
+        dict_to_log = {}
+
+        for idx, z in enumerate(self.zs_for_logging):
+            sampled_images, _ = self.forward_trainable(z, truncation=self.config.logging.truncation)
+            images = construct_paper_image_grid(sampled_images)
+            dict_to_log.update({
+                f"trg_domain_grids/{self.config.training.target_class}/{idx}": images
+            })
+
+        self.logger.log_images(self.current_step, dict_to_log)
+
+
+@trainer_registry.add_to_registry("im2im_single_with_features_shift")
+class Image2ImageFeaturesShiftSingleDomainAdaptationTrainer(SingleDomainAdaptationTrainer):
+    def __init__(self, config):
+        super().__init__(config)
+
+        self.style_image_latents = None
+        self.style_image_full_res = None
+        self.style_image_resized = None
+        self.style_image_inverted_A = None
+
+        # ADDED
+        self.style_image_features = None
+        self.features_idx_k = None
+    
+    def setup(self):
+        self._setup_base()
+        self._setup_trainable()
+        self._setup_optimizer()
+
+        self._setup_style_image()
+        self._log_target_images()
+        self._setup_src_embeddings()
+    
+    def ckpt_info(self):
+        return {
+            'da_type': 'im2im',
+            'style_latents': self.style_image_latents[:, 7:, :].cpu()
+        }
+    
+    def _setup_src_embeddings(self):
+        for visual_encoder, (model, preprocess) in self.batch_generators.items():
+            self.reference_embeddings[visual_encoder][self.config.training.source_class] = self.encode_text(
+                model, self.config.training.source_class, ['A {}']
+            )
+    
+    def _setup_style_image(self):
+        im_path = self.config.training.target_class
+        inversion_m = self.config.inversion.method
+        
+        root_latents = Path(self.config.inversion.latents_root)
+        root_latents.mkdir(exist_ok=True)
+        size = self.source_generator.generator.size
+        size_pref = "" if size == 1024 else "_512"
+        latent_dump_name = f"{Path(im_path).stem}_{inversion_m}{size_pref}.npy"
+    
+        current_latents_path = root_latents / latent_dump_name
+        
+        if inversion_m == 'e4e':
+            self.style_image_latents = self._setup_style_e4e(current_latents_path)
+        elif inversion_m == 'ii2s':
+            self.style_image_latents = self._setup_style_ii2s(current_latents_path)
+        elif inversion_m == 'fse':
+            root_features = Path(self.config.inversion.features_root)
+            root_features.mkdir(exist_ok=True)
+            features_dump_name = f"{Path(im_path).stem}_{inversion_m}_features{size_pref}.npy"
+            current_features_path = root_features / features_dump_name
+
+            self.style_image_latents, self.style_image_features = self._setup_style_fse(
+                current_latents_path, current_features_path
+            )
+                
+        self.bicubic = BicubicDownSample(self.source_generator.generator.size // 256)
+        self.style_image_inverted_A = self.forward_source(
+            [self.style_image_latents],
+            input_is_latent=True,
+            features_in=self.style_image_features
+        )
+        
+        from core.style_embed_options import II2S_s_opts
+        single_image_dataset = ImagesDataset(
+            opts=II2S_s_opts,
+            image_path=self.config.training.target_class,
+            align_input=self.config.inversion.align_style
+        )
+
+        image_info = single_image_dataset[0]
+
+        self.style_image_full_res = image_info['image_high_res_torch'].unsqueeze(0).to(self.device)
+        self.style_image_resized = image_info['image_low_res_torch'].unsqueeze(0).to(self.device)
+                
+    def _setup_style_ii2s(self, latents_path):
+        from core.style_embed_options import II2S_s_opts
+        II2S_s_opts.size = self.source_generator.generator.size
+        II2S_s_opts.ckpt = self.config.generator_args.stylegan2.checkpoint_path
+        
+        
+        if latents_path.exists():
+            latents = np.load(str(latents_path))
+            latents = torch.from_numpy(latents).to(self.device)
+        else:
+            latents = invert_ii2s(
+                self.config.training.target_class, II2S_s_opts, 
+                align_input=self.config.inversion.align_style, device=self.device
+            )
+            print(f'''
+            latents for {self.config.training.target_class} cached in 
+            {str(latents_path.resolve())}
+            ''')
+
+            np.save(str(latents_path), latents.detach().cpu().numpy())
+        
+        return latents
+    
+    def _setup_style_e4e(self, latents_path):
+        if latents_path.exists():
+            latents = np.load(str(latents_path))
+            latents = torch.from_numpy(latents).to(self.device)
+            return latents
+        
+        image = read_img(self.config.training.target_class, self.config.inversion.align_style)
+        _, latents = project_e4e(
+            image, self.config.inversion.model_path, device=self.device
+        )
+
+        print(f'''
+        latents for {self.config.training.target_class} cached in 
+        {str(latents_path.resolve())}
+        ''')
+
+        np.save(str(latents_path), latents.detach().cpu().numpy())
+        return latents
+
+    def _setup_style_fse(self, latents_path, features_path):
+        if latents_path.exists() and features_path.exists():
+            latents = np.load(str(latents_path))
+            latents = torch.from_numpy(latents).to(self.device)
+
+            features = np.load(str(features_path))
+            features = torch.from_numpy(features).to(self.device)
+
+            return latents, features
+        
+        image = read_img(self.config.training.target_class, self.config.inversion.align_style)
+        _, latents, features = project_fse_without_image_generation(
+            image,
+            model_path=self.config.inversion.model_path,
+            fse_config_path=self.config.inversion.fse_config_path,              # ADD TO THE CONFIG !
+            arcface_model_path=self.config.inversion.arcface_model_path,        # ADD TO THE CONFIG !
+            stylegan_model_path=self.config.inversion.checkpoint_path,          # ADD TO THE CONFIG !
+            device=self.device
+        )
+
+        if self.features_idx_k is None:
+            config = yaml.load(open(self.config.inversion.fse_config_pathnfig_path, 'r'), Loader=yaml.FullLoader)
+            self.features_idx_k = config.get('idx_k', 5)
+    
+        features = features[self.features_idx_k]
+
+        print(f'''
+        latents and features for {self.config.training.target_class} cached in 
+        {str(latents_path.resolve())} and {str(features_path).resolve()} correspondingly
+        ''')
+
+        np.save(str(latents_path), latents.detach().cpu().numpy())
+        np.save(str(features_path), features.detach().cpu().numpy())
+
+        return latents, features
+    
+    
+    def _log_target_images(self):
+        style_image_resized = t2im(self.style_image_resized.squeeze())
+        st_im_inverted_A = t2im(self.style_image_inverted_A.squeeze())
+        self.logger.log_images(
+            0, {"style_image/orig": style_image_resized, "style_image/projected_A": st_im_inverted_A}
+        )
+
+    def calc_batch(self, sample_z):
+        clip_data = {k: {} for k in self.batch_generators}
+
+        frozen_img = self.forward_source(sample_z)
+        trainable_img, offsets = self.forward_trainable(sample_z)
+        style_image_inverted_B, _ = self.forward_trainable(
+            [self.style_image_latents], input_is_latent=True
+        )
+        
+        for visual_encoder_key, (model, preprocess) in self.batch_generators.items():
+            
+            trg_encoded = self.clip_encode_image(model, trainable_img, preprocess)
+            src_encoded = self.clip_encode_image(model, frozen_img, preprocess)
+            trg_domain_emb = self.clip_encode_image(model, self.style_image_full_res, preprocess)
+            src_domain_emb = self.clip_encode_image(model, self.style_image_inverted_A, preprocess)
+            # src_domain_emb = self.reference_embeddings[visual_encoder_key][self.config.training.source_class]
+            st_inverted_B_emb = self.clip_encode_image(model, style_image_inverted_B, preprocess)
+            st_orig_emb = self.clip_encode_image(model, self.style_image_full_res, preprocess)
+            
+            clip_data[visual_encoder_key].update({
+                'trg_encoded': trg_encoded,
+                'src_encoded': src_encoded,
+                'trg_domain_emb': trg_domain_emb,
+                'src_domain_emb': src_domain_emb,
+                'trg_trainable_emb': st_inverted_B_emb,
+                'trg_emb': trg_domain_emb
+            })
+
+        rec_data = {
+            'style_inverted_B_256x256': self.bicubic(style_image_inverted_B),
+            'style_image_256x256': self.style_image_resized,
+            'style_inverted_B_1024x1024': style_image_inverted_B,
+            'style_image_1024x1024': self.style_image_full_res,
+        }
+
+        return {
+            'clip_data': clip_data,
+            'rec_data': rec_data,
+            'offsets': offsets
+        }
+
+    @torch.no_grad()
+    def log_images(self):
+        self.trainable.eval()
+        dict_to_log = {}
+
+        for idx, z in enumerate(self.zs_for_logging):
+            w_styles = self.source_generator.style(z)
+            sampled_imgs, _ = self.forward_trainable(z, truncation=self.config.logging.truncation)
+            n_lat = self.source_generator.generator.n_latent
+            tmp_latents = w_styles[0].unsqueeze(1).repeat(1, n_lat, 1)
+            gen_mean = self.source_generator.mean_latent.unsqueeze(1).repeat(1, n_lat, 1)
+            style_mixing_latents = self.config.logging.truncation * (tmp_latents - gen_mean) + gen_mean
+            style_mixing_latents[:, 7:, :] = self.style_image_latents[:, 7:, :]
+
+            style_mixing_imgs, _ = self.forward_trainable(
+                [style_mixing_latents], input_is_latent=True, truncation=1
+            )
+
+            sampled_imgs = construct_paper_image_grid(sampled_imgs)
+            style_mixing_imgs = construct_paper_image_grid(style_mixing_imgs)
+
+            dict_to_log.update({
+                f"trg_domain_grids/{Path(self.config.training.target_class).stem}/{idx}": sampled_imgs,
+                f"trg_domain_grids_sm/{Path(self.config.training.target_class).stem}/{idx}": style_mixing_imgs,
+
+            })
+
+        rec_img, _ = self.forward_trainable(
+            [self.style_image_latents],
+            input_is_latent=True,
+        )
+        rec_img = t2im(rec_img.squeeze())
+        dict_to_log.update({"style_image/projected_B": rec_img})
+        self.logger.log_images(self.current_step, dict_to_log)
+        
+    @torch.no_grad()
+    def log_images_for_low_memory(self):
+        self.trainable.eval()
+        dict_to_log = {}
+
+        for idx, z in enumerate(self.zs_for_logging):
+            w_styles = self.source_generator.style(z)
+            sampled_imgs, _ = self.forward_trainable(z, truncation=self.config.logging.truncation)
+            n_lat = self.source_generator.generator.n_latent
+            tmp_latents = w_styles[0].unsqueeze(1).repeat(1, n_lat, 1)
+            gen_mean = self.source_generator.mean_latent.unsqueeze(1).repeat(1, n_lat, 1)
+            style_mixing_latents = self.config.logging.truncation * (tmp_latents - gen_mean) + gen_mean
+            style_mixing_latents[:, 7:, :] = self.style_image_latents[:, 7:, :]
+
+            style_mixing_imgs, _ = self.forward_trainable(
+                [style_mixing_latents], input_is_latent=True, truncation=1
+            )
+
+            sampled_imgs = torch.cat([sampled_imgs[0], sampled_imgs[1]], dim=2)
+            sampled_imgs = t2im(sampled_imgs)
+            style_mixing_imgs = torch.cat([style_mixing_imgs[0], style_mixing_imgs[1]], dim=2)
+            style_mixing_imgs = t2im(style_mixing_imgs)
+
+            dict_to_log.update({
+                f"trg_domain_grids/{Path(self.config.training.target_class).stem}/{idx}": sampled_imgs,
+                f"trg_domain_grids_sm/{Path(self.config.training.target_class).stem}/{idx}": style_mixing_imgs,
+
+            })
+
+        rec_img, _ = self.forward_trainable(
+            [self.style_image_latents],
+            input_is_latent=True,
+        )
+        rec_img = t2im(rec_img.squeeze())
+        dict_to_log.update({"style_image/projected_B": rec_img})
+        self.logger.log_images(self.current_step, dict_to_log)
+        
